@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="shortcut icon" href="/static/img/logoblanco.png" type="image/x-icon" style="background-color: white;">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <title>TabMaker</title>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <img src="/static/img/logo.png" alt="Logo">
+    </div>
+    <div class="titulo">
+      <img src="/static/img/titulo.png" alt="Titulo">
+    </div>
+    <button class="btn-tutorial" onclick="tutorial()">
+      <span>¿Como funciona?</span>
+    </button>
+  </header>
+
+  <div class="container">
+    <div class="column btn">
+      <button class="mic-button" onclick="toggleText()">
+        <img src="/static/img/logo.png" alt="Mic">
+      </button>
+    </div>
+    <div class="column text">
+      <h2>Pulsa para</h2>
+      <h1>aprender ese temazo</h1>
+      <p>¡Rápido que se te escapa la oportunidad de grabarlo!</p>
+    </div>
+  </div>
+
+  <div class="graban-sec">
+    <h1 class="graban-text">Grabando...</h1>
+    <p class="graban-text-suger" id="textoAleatorio"></p>
+  </div>
+
+  <script>
+    var textos = [
+      "Espero que hayas entrenado los dedos, esta canción parece bastante dificil.",
+      "¡Madre mia! Cuando aprendas a tocar esto, van a flipar todos.",
+      "¡¡Ooooouuuuuuuuh yeaaaaaaah!! Dale cañaaaaa amigoo",
+      "Apunta el microfono bien amigo, no se me vaya a escapar grabarte alguna nota.",
+      "🎶🎶 Pooor la raaaaja de tu faaalda yo tuve un piñaaazo con un Seat Pandaaaa 🎶🎶",
+      "El escenario te está esperando... pero tú estás en casa, en pijama, y eso está perfectamente bien.",
+      "A todo esto, antes de grabar esto...¿te habrás asegurado de haber apagado el horno, no?",
+      "¡Oye, pero vaya riff! Me costó grabarlo... ¡pero lo he conseguido, eh?",
+      "Espero que sepas que, para terminar de grabar, hay que darle al boton GIGANTE de arriba.",
+      "¡Dale caña! Hasta Ozzy Osbourne está escuchando ese gran guitarreo"
+    ];
+
+    function toggleText() {
+      const btnColumn = document.querySelector('.btn');
+      const textColumn = document.querySelector('.text');
+      const grabanText = document.querySelector('.graban-text');
+      const grabanTextSug = document.querySelector('.graban-text-suger');
+
+
+      btnColumn.classList.toggle('moved');
+      textColumn.classList.toggle('hidden');
+      grabanText.classList.toggle('appear');
+      grabanTextSug.classList.toggle('appear');
+
+      var textoAleatorio = textos[Math.floor(Math.random() * textos.length)];
+      grabanTextSug.textContent = textoAleatorio;
+
+      fetch('/grabar_tablatura')
+        .then(response => response.json())
+        .then(data => {
+          if (data.latest_file) {
+            var newName = prompt("Enter new name for the file:", "Nueva_Tablatura.odt");
+            if (newName) {
+              if (!newName.endsWith('.odt')) {
+                newName += '.odt';
+              }
+              fetch('/rename_and_download', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ old_name: data.latest_file.split('/').pop(), new_name: newName })
+              })
+              .then(response => response.blob())
+              .then(blob => {
+                var url = window.URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = newName;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+              });
+            }
+          }
+        });
+    }
+
+    function tutorial() {
+      // Create the overlay div
+      const overlay = document.createElement('div');
+      overlay.id = 'tutorial-overlay';
+
+      // Create the title
+      const title = document.createElement('h1');
+      title.innerText = '¿Cómo Funciona TabMaker?';
+      overlay.appendChild(title);
+
+      // Create the content container
+      const content = document.createElement('div');
+      content.id = 'tutorial-content';
+
+      // Add images and subtitles
+      const items = [
+        { img: '/static/img/Paso1.png', text1: 'PASO 1', text2: 'Echa un ojo a la pantalla y verás un boton gigante IDENTICO al que verás en la imagen de arriba. ¡Pulsalo cuando quieras grabar esa tablatura!' },
+        { img: '/static/img/Paso2.png', text1: 'PASO 2', text2: 'Si estas viendo esto, significa que ya estamos escuchando esa guitarra. Cuando termines, ¡vuelve a pulsar en el mismo botón para finalizar la grabación!' },
+        { img: '/static/img/Paso3.png', text1: 'PASO 3', text2: 'Por último, tendrás que escribir el nombre de tu nuevo archivo. Tomate tu tiempo. Cuando lo tengas decidido, pulsa en aceptar y... ¡ya tendrás tu tablatura!  ' }
+      ];
+
+      items.forEach((item, index) => {
+          const tutorialItem = document.createElement('div');
+          tutorialItem.className = 'tutorial-item';
+          tutorialItem.style.animationDelay = `${0.5 + index * 0.5}s`;
+          
+
+          const imgContainer = document.createElement('div');
+          imgContainer.id = 'img-container'
+          tutorialItem.appendChild(imgContainer);
+
+          const image = document.createElement('img');
+          image.src = item.img;
+          imgContainer.appendChild(image);
+
+          const title = document.createElement('h2');
+          title.innerText = item.text1;
+          tutorialItem.appendChild(title);
+
+          const subtitle = document.createElement('p');
+          subtitle.innerText = item.text2;
+          tutorialItem.appendChild(subtitle);
+
+          content.appendChild(tutorialItem);
+      });
+
+      overlay.appendChild(content);
+
+      const closeButton = document.createElement('button');
+      closeButton.id = 'close-tutorial';
+      closeButton.innerText = 'Cerrar';
+      closeButton.onclick = function() {
+          document.body.removeChild(overlay);
+      };
+      overlay.appendChild(closeButton);
+
+      document.body.appendChild(overlay);
+    }
+
+    function cambiarTexto() {
+      var textoAleatorio = textos[Math.floor(Math.random() * textos.length)];
+      document.getElementById('textoAleatorio').textContent = textoAleatorio;
+    }
+
+    setInterval(cambiarTexto, 5000);
+    cambiarTexto();
+  </script>
+</body>
+</html>
